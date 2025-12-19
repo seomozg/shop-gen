@@ -296,7 +296,8 @@ def run_server(port=8000):
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     handler = CatalogWebHandler
-    httpd = socketserver.TCPServer(("", port), handler)
+    # Bind to all interfaces for Railway
+    httpd = socketserver.TCPServer(("0.0.0.0", port), handler)
 
     print(f"🚀 Catalog Generator Web Server running at http://localhost:{port}")
     print("📁 Web interface: http://localhost:8000")
@@ -313,4 +314,6 @@ if __name__ == '__main__':
     dotenv.load_dotenv()
 
     port = int(os.getenv('PORT', 8000))
+    print(f"Starting server on port {port}")
+    print(f"PORT environment variable: {os.getenv('PORT', 'not set')}")
     run_server(port)
