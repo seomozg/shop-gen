@@ -12,23 +12,24 @@ def main():
     print("🚀 Starting Catalog Generator Web Interface")
     print("=" * 50)
 
-    # Check if .env file exists
-    if not os.path.exists('.env'):
-        print("⚠️  .env file not found!")
-        print("   Please copy .env.example to .env and add your API keys")
-        print("   cp .env.example .env")
-        return
+    # Try to load .env file if it exists (for local development)
+    if os.path.exists('.env'):
+        from dotenv import load_dotenv
+        load_dotenv()
+        print("✅ Loaded .env file")
 
-    # Check if API keys are set
-    from dotenv import load_dotenv
-    load_dotenv()
-
+    # Check if API keys are set (either from .env or Railway environment)
     pexels_key = os.getenv('PEXELS_API_KEY')
     deepseek_key = os.getenv('DEEPSEEK_API_KEY')
 
     if not pexels_key or not deepseek_key:
         print("⚠️  API keys not configured!")
-        print("   Please edit .env file and add your API keys:")
+        if os.path.exists('.env.example'):
+            print("   For local development:")
+            print("   cp .env.example .env")
+            print("   Then edit .env and add your API keys")
+        print("   For Railway deployment:")
+        print("   Set PEXELS_API_KEY and DEEPSEEK_API_KEY in Railway Variables")
         print("   - PEXELS_API_KEY")
         print("   - DEEPSEEK_API_KEY")
         return

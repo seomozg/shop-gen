@@ -64,20 +64,18 @@ class CatalogWebHandler(http.server.BaseHTTPRequestHandler):
 
     def handle_generate_catalog(self):
         try:
-            # Initialize services - reload dotenv to ensure keys are loaded
-            import dotenv
-            dotenv.load_dotenv(override=True)
+            # Initialize services - try to load .env for local development, but Railway provides env vars directly
+            if os.path.exists('.env'):
+                import dotenv
+                dotenv.load_dotenv(override=True)
 
             pexels_key = os.getenv('PEXELS_API_KEY')
             deepseek_key = os.getenv('DEEPSEEK_API_KEY')
 
-            print(f"DEBUG: PEXELS_KEY loaded: {'YES' if pexels_key else 'NO'} ({pexels_key[:10] if pexels_key else 'None'}...)")
-            print(f"DEBUG: DEEPSEEK_KEY loaded: {'YES' if deepseek_key else 'NO'} ({deepseek_key[:10] if deepseek_key else 'None'}...)")
-
             if not pexels_key or not deepseek_key:
                 self.send_json_response({
                     'success': False,
-                    'error': f'API keys not configured. PEXELS: {"YES" if pexels_key else "NO"}, DEEPSEEK: {"YES" if deepseek_key else "NO"}'
+                    'error': 'API keys not configured. Please set PEXELS_API_KEY and DEEPSEEK_API_KEY environment variables.'
                 }, 500)
                 return
 
