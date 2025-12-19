@@ -1,7 +1,4 @@
 {
-  "build": {
-    "builder": "python"
-  },
   "deploy": {
     "startCommand": "python web_server.py"
   }
