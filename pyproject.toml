@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shop-gen"
+version = "0.1.0"
+description = "Catalog Generator Service for online stores"
+authors = [
+    {name = "Grok Code Team"}
+]
+dependencies = [
+    "pytest>=7.0.0",
+    "requests>=2.28.0",
+    "python-dotenv>=1.0.0"
+]
+requires-python = ">=3.11"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]

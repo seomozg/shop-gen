@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalog Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .status {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+            display: none;
+        }
+        .status.info {
+            background-color: #e3f2fd;
+            border: 1px solid #2196f3;
+            color: #1976d2;
+        }
+        .status.success {
+            background-color: #e8f5e8;
+            border: 1px solid #4caf50;
+            color: #2e7d32;
+        }
+        .status.error {
+            background-color: #ffeaea;
+            border: 1px solid #f44336;
+            color: #c62828;
+        }
+        .progress-container {
+            margin: 20px 0;
+            display: none;
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background-color: #2196f3;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .progress-text {
+            text-align: center;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .batch-progress {
+            margin-top: 20px;
+            display: none;
+        }
+        .batch-item {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+            padding: 8px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        .batch-number {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #e0e0e0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-right: 15px;
+            color: #666;
+        }
+        .batch-item.processing .batch-number {
+            background-color: #2196f3;
+            color: white;
+        }
+        .batch-item.completed .batch-number {
+            background-color: #4caf50;
+            color: white;
+        }
+        .batch-item.error .batch-number {
+            background-color: #f44336;
+            color: white;
+        }
+        .batch-info {
+            flex: 1;
+        }
+        .batch-title {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        .batch-status {
+            font-size: 12px;
+            color: #666;
+        }
+        .batch-item.completed .batch-status {
+            color: #2e7d32;
+        }
+        .batch-item.error .batch-status {
+            color: #c62828;
+        }
+        button {
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            width: 100%;
+            margin: 20px 0;
+        }
+        button:hover {
+            background-color: #1976d2;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            display: none;
+        }
+        .download-link {
+            display: inline-block;
+            background-color: #4caf50;
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+        .download-link:hover {
+            background-color: #388e3c;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-item {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2196f3;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛍️ Catalog Generator</h1>
+
+        <button id="startBtn" onclick="startGeneration()">
+            🚀 Start Catalog Generation
+        </button>
+
+        <div id="status" class="status"></div>
+
+        <div class="progress-container" id="progressContainer">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">Initializing...</div>
+        </div>
+
+        <div class="batch-progress" id="batchProgress">
+            <h4>📦 Batch Processing Progress:</h4>
+            <div id="batchList"></div>
+        </div>
+
+        <div class="result" id="result">
+            <h3>✅ Generation Complete!</h3>
+            <div class="stats" id="stats"></div>
+            <a id="downloadLink" class="download-link" href="#" target="_blank">
+                📦 Download Catalog Archive
+            </a>
+        </div>
+    </div>
+
+    <script>
+        let eventSource = null;
+
+        function startGeneration() {
+            const startBtn = document.getElementById('startBtn');
+            const status = document.getElementById('status');
+            const progressContainer = document.getElementById('progressContainer');
+            const batchProgress = document.getElementById('batchProgress');
+            const batchList = document.getElementById('batchList');
+            const result = document.getElementById('result');
+
+            // Reset UI
+            startBtn.disabled = true;
+            startBtn.textContent = '🔄 Generating...';
+            status.style.display = 'none';
+            progressContainer.style.display = 'block';
+            batchProgress.style.display = 'block';
+            batchList.innerHTML = '<div class="batch-item"><div class="batch-info">Initializing...</div></div>';
+            result.style.display = 'none';
+            updateProgress(0, 'Starting catalog generation...');
+
+            // Connect to Server-Sent Events for real-time progress
+            connectToProgress();
+
+            // Start the generation process
+            fetch('/api/generate-catalog', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Generation started successfully, wait for SSE updates
+                    console.log('Generation started, waiting for progress updates...');
+                } else {
+                    showError(data.error || 'Generation failed');
+                    // Disconnect from SSE on error
+                    if (eventSource) {
+                        eventSource.close();
+                        eventSource = null;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('Failed to start generation: ' + error.message);
+                // Disconnect from SSE on error
+                if (eventSource) {
+                    eventSource.close();
+                    eventSource = null;
+                }
+            });
+        }
+
+        function connectToProgress() {
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            eventSource = new EventSource('/api/progress');
+
+            eventSource.onmessage = function(event) {
+                try {
+                    const progress = JSON.parse(event.data);
+                    updateProgressFromServer(progress);
+                } catch (e) {
+                    console.error('Error parsing progress data:', e);
+                }
+            };
+
+            eventSource.onerror = function(event) {
+                console.error('SSE error:', event);
+            };
+
+            eventSource.onopen = function(event) {
+                console.log('Connected to progress stream');
+            };
+        }
+
+        function updateProgressFromServer(progress) {
+            const progressContainer = document.getElementById('progressContainer');
+            const batchList = document.getElementById('batchList');
+
+            // Check if generation is completed
+            if (progress.status === 'completed' && progress.archive_url) {
+                // Show completion result
+                const resultData = {
+                    archive_url: progress.archive_url,
+                    archive_name: progress.archive_name,
+                    theme: progress.theme || 'generated',
+                    stats: {
+                        total_products: progress.total_images || 0,
+                        total_images: progress.total_images || 0
+                    }
+                };
+                showResult(resultData);
+
+                // Disconnect from SSE
+                if (eventSource) {
+                    eventSource.close();
+                    eventSource = null;
+                }
+                return;
+            }
+
+            // Check for errors
+            if (progress.status === 'error') {
+                showError(progress.message || 'Generation failed');
+
+                // Disconnect from SSE
+                if (eventSource) {
+                    eventSource.close();
+                    eventSource = null;
+                }
+                return;
+            }
+
+            // Update main progress
+            updateProgress(calculateOverallProgress(progress), progress.message || 'Processing...');
+
+            // Update batch progress
+            if (progress.batches && progress.batches.length > 0) {
+                batchList.innerHTML = '';
+
+                progress.batches.forEach(batch => {
+                    const batchItem = document.createElement('div');
+                    batchItem.className = `batch-item ${batch.status}`;
+
+                    let statusText = '';
+                    switch(batch.status) {
+                        case 'pending':
+                            statusText = '⏳ Pending';
+                            break;
+                        case 'processing':
+                            statusText = '🔄 Processing';
+                            break;
+                        case 'completed':
+                            statusText = `✅ Completed in ${batch.time}s`;
+                            break;
+                        case 'error':
+                            statusText = '❌ Error';
+                            break;
+                        default:
+                            statusText = batch.status;
+                    }
+
+                    batchItem.innerHTML = `
+                        <div class="batch-number">${batch.number}</div>
+                        <div class="batch-info">
+                            <div class="batch-title">Batch ${batch.number} (${batch.images} images)</div>
+                            <div class="batch-status">${statusText}</div>
+                        </div>
+                    `;
+
+                    batchList.appendChild(batchItem);
+                });
+            }
+
+            // Auto-scroll to show latest batch
+            const latestBatch = batchList.lastElementChild;
+            if (latestBatch) {
+                latestBatch.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function calculateOverallProgress(progress) {
+            if (!progress.total_batches) return 0;
+
+            let progressPercent = 0;
+
+            // Theme selection and image fetching (10%)
+            if (progress.theme) {
+                progressPercent += 10;
+            }
+
+            // Batch processing (70%)
+            if (progress.total_batches > 0) {
+                const batchProgress = (progress.completed_batches / progress.total_batches) * 70;
+                progressPercent += batchProgress;
+            }
+
+            // Image downloading (15%)
+            if (progress.total_images > 0) {
+                const downloadProgress = (progress.downloaded_images / progress.total_images) * 15;
+                progressPercent += downloadProgress;
+            }
+
+            // Archive creation (5%)
+            if (progress.status === 'creating_archive' || progress.status === 'completed') {
+                progressPercent += 5;
+            }
+
+            return Math.min(progressPercent, 100);
+        }
+
+        function updateProgress(percent, message) {
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+
+            progressFill.style.width = percent + '%';
+            progressText.textContent = message;
+        }
+
+        function showResult(data) {
+            const startBtn = document.getElementById('startBtn');
+            const progressContainer = document.getElementById('progressContainer');
+            const result = document.getElementById('result');
+            const downloadLink = document.getElementById('downloadLink');
+            const stats = document.getElementById('stats');
+
+            // Update UI
+            startBtn.disabled = false;
+            startBtn.textContent = '🚀 Start New Generation';
+            progressContainer.style.display = 'none';
+            result.style.display = 'block';
+
+            // Set download link
+            downloadLink.href = data.archive_url;
+            downloadLink.textContent = `📦 Download ${data.archive_name}`;
+
+            // Show statistics
+            stats.innerHTML = `
+                <div class="stat-item">
+                    <div class="stat-value">${data.stats.total_products}</div>
+                    <div class="stat-label">Products</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${data.stats.total_images}</div>
+                    <div class="stat-label">Images</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value">${data.theme}</div>
+                    <div class="stat-label">Theme</div>
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            const startBtn = document.getElementById('startBtn');
+            const status = document.getElementById('status');
+            const progressContainer = document.getElementById('progressContainer');
+
+            startBtn.disabled = false;
+            startBtn.textContent = '🚀 Try Again';
+            progressContainer.style.display = 'none';
+
+            status.className = 'status error';
+            status.style.display = 'block';
+            status.textContent = '❌ Error: ' + message;
+        }
+
+        function showStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            status.textContent = message;
+
+            // Auto-hide after 5 seconds for info messages
+            if (type === 'info') {
+                setTimeout(() => {
+                    status.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            showStatus('Ready to generate catalog', 'info');
+        });
+    </script>
+</body>
+</html>
